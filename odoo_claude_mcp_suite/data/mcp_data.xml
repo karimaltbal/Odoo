@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Days to keep Claude MCP call logs; 0 keeps them forever. Editable under
+         Settings > Technical > System Parameters; never overwritten on upgrade. -->
+    <data noupdate="1">
+        <record id="param_log_retention_days" model="ir.config_parameter">
+            <field name="key">odoo_claude_mcp_suite.log_retention_days</field>
+            <field name="value">90</field>
+        </record>
+    </data>
+
+    <!-- Idempotent: only adds models that have no rule yet, so it is safe on every upgrade. -->
+    <function model="mcp.allowed.model" name="_seed_defaults"/>
+
+    <function model="mcp.tool" name="_sync_from_code"/>
+
+    <record id="action_server_mcp_seed_models" model="ir.actions.server">
+        <field name="name">Add Default Models</field>
+        <field name="model_id" ref="model_mcp_allowed_model"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_seed_defaults()</field>
+    </record>
+
+    <record id="action_server_mcp_purge_logs" model="ir.actions.server">
+        <field name="name">Purge Old Logs</field>
+        <field name="model_id" ref="model_mcp_tool_log"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_purge_old_logs()</field>
+    </record>
+
+    <menuitem id="menu_mcp_purge_logs" name="Purge Old Logs" parent="menu_mcp_root"
+              action="action_server_mcp_purge_logs" sequence="25" groups="base.group_system"/>
+    <menuitem id="menu_mcp_seed_models" name="Add Default Models" parent="menu_mcp_root"
+              action="action_server_mcp_seed_models" sequence="35" groups="base.group_system"/>
+</odoo>

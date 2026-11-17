@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_mcp_api_key_tree" model="ir.ui.view">
+        <field name="name">mcp.api.key.tree</field>
+        <field name="model">mcp.api.key</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="user_id"/>
+                <field name="key_preview"/>
+                <field name="write_mode"/>
+                <field name="last_used"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mcp_api_key_form" model="ir.ui.view">
+        <field name="name">mcp.api.key.form</field>
+        <field name="model">mcp.api.key</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_generate_key" type="object"
+                            string="Generate / Regenerate Key" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger" role="alert" invisible="not user_is_admin">
+                        This key runs as an Administrator, so Odoo will not restrict
+                        what Claude can read. Use a dedicated low-privilege user instead.
+                    </div>
+                    <group>
+                        <field name="name"/>
+                        <field name="user_id"/>
+                        <field name="user_is_admin" invisible="1"/>
+                        <field name="key_preview"/>
+                        <field name="last_used"/>
+                        <field name="active"/>
+                    </group>
+                    <notebook>
+                        <page string="Tools" name="tools">
+                            <group>
+                                <field name="tool_access" widget="radio"/>
+                                <field name="allowed_tool_ids" widget="many2many_tags"
+                                       invisible="tool_access != 'custom'"/>
+                            </group>
+                        </page>
+                        <page string="Write Access" name="write_access">
+                            <div class="alert alert-warning" role="alert" invisible="write_mode == 'read'">
+                                Claude can change data with this key. Records are always created as
+                                drafts; business actions only run on models where
+                                'Allow Business Actions' is ticked, and every change is noted in the
+                                record's chatter and in the Call Log.
+                            </div>
+                            <group>
+                                <field name="write_mode" widget="radio"/>
+                            </group>
+                            <p class="text-muted">
+                                Per model, tick 'Allow Create' and 'Allow Business Actions' under
+                                Claude Connector &gt; Queryable Models. The Odoo access rights of the
+                                'Run As User' always apply on top.
+                            </p>
+                        </page>
+                        <page string="Data Access (generic tools)" name="data_access">
+                            <p class="text-muted">
+                                Models Claude may query with list_models / describe_model / query_data
+                                for this key. Empty means no generic access. The Odoo permissions of the
+                                'Run As User' are always enforced on top of this list.
+                            </p>
+                            <group>
+                                <field name="all_models"/>
+                                <field name="allowed_model_ids" widget="many2many_tags"
+                                       invisible="all_models"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mcp_api_key" model="ir.actions.act_window">
+        <field name="name">Claude MCP API Keys</field>
+        <field name="res_model">mcp.api.key</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_mcp_api_key_show_wizard_form" model="ir.ui.view">
+        <field name="name">mcp.api.key.show.wizard.form</field>
+        <field name="model">mcp.api.key.show.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="alert alert-warning" role="alert">
+                        Copy this key now and give it to Claude's MCP connector
+                        configuration. For security reasons, it will not be shown
+                        again.
+                    </div>
+                    <group>
+                        <field name="raw_key" readonly="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm_copied" type="object"
+                            string="I have copied the key" class="btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_mcp_tool_log_tree" model="ir.ui.view">
+        <field name="name">mcp.tool.log.tree</field>
+        <field name="model">mcp.tool.log</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false">
+                <field name="create_date"/>
+                <field name="api_key_id"/>
+                <field name="user_id"/>
+                <field name="method"/>
+                <field name="tool_name"/>
+                <field name="access"/>
+                <field name="success"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mcp_tool_log_form" model="ir.ui.view">
+        <field name="name">mcp.tool.log.form</field>
+        <field name="model">mcp.tool.log</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <sheet>
+                    <group>
+                        <field name="create_date"/>
+                        <field name="api_key_id"/>
+                        <field name="user_id"/>
+                        <field name="method"/>
+                        <field name="tool_name"/>
+                        <field name="access"/>
+                        <field name="success"/>
+                        <field name="error_message"/>
+                    </group>
+                    <field name="arguments"/>
+                    <field name="result_summary"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_mcp_tool_log_search" model="ir.ui.view">
+        <field name="name">mcp.tool.log.search</field>
+        <field name="model">mcp.tool.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="tool_name"/>
+                <field name="api_key_id"/>
+                <field name="user_id"/>
+                <field name="error_message"/>
+                <filter name="failed" string="Failed" domain="[('success', '=', False)]"/>
+                <filter name="writes" string="Changes (create / actions)" domain="[('access', '!=', 'read')]"/>
+                <separator/>
+                <filter name="create_date" string="Date" date="create_date"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_tool" string="Tool" context="{'group_by': 'tool_name'}"/>
+                    <filter name="group_key" string="API Key" context="{'group_by': 'api_key_id'}"/>
+                    <filter name="group_day" string="Day" context="{'group_by': 'create_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_mcp_tool_log" model="ir.actions.act_window">
+        <field name="name">Claude MCP Log</field>
+        <field name="res_model">mcp.tool.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_mcp_tool_log_search"/>
+        <field name="help" type="html">
+            <p>Every call Claude makes is logged here. Logs older than the retention period
+            (system parameter odoo_claude_mcp_suite.log_retention_days, default 90 days, 0 = keep forever)
+            are deleted every day.</p>
+        </field>
+    </record>
+
+    <record id="view_mcp_allowed_model_tree" model="ir.ui.view">
+        <field name="name">mcp.allowed.model.tree</field>
+        <field name="model">mcp.allowed.model</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="model_id"/>
+                <field name="model_name"/>
+                <field name="max_rows"/>
+                <field name="allow_create"/>
+                <field name="allow_actions"/>
+                <field name="blocked_field_ids" widget="many2many_tags"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mcp_allowed_model_form" model="ir.ui.view">
+        <field name="name">mcp.allowed.model.form</field>
+        <field name="model">mcp.allowed.model</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="model_id"/>
+                        <field name="max_rows"/>
+                        <field name="active"/>
+                    </group>
+                    <group string="Write permissions (also need the API key's Write Access)">
+                        <field name="allow_create"/>
+                        <field name="allow_actions"/>
+                    </group>
+                    <group string="Blocked fields (invisible to Claude)">
+                        <field name="blocked_field_ids" widget="many2many_tags"
+                               domain="[('model_id', '=', model_id)]" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mcp_allowed_model" model="ir.actions.act_window">
+        <field name="name">Claude MCP Queryable Models</field>
+        <field name="res_model">mcp.allowed.model</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_mcp_tool_tree" model="ir.ui.view">
+        <field name="name">mcp.tool.tree</field>
+        <field name="model">mcp.tool</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" delete="false">
+                <field name="name"/>
+                <field name="access"/>
+                <field name="description"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_mcp_tool" model="ir.actions.act_window">
+        <field name="name">Claude MCP Tools</field>
+        <field name="res_model">mcp.tool</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <menuitem id="menu_mcp_root" name="Claude Connector" sequence="100"
+            groups="odoo_claude_mcp_suite.group_access_claude_connector"/>
+            
+    <menuitem id="menu_mcp_api_key" name="API Keys" parent="menu_mcp_root"
+              action="action_mcp_api_key" sequence="10" groups="odoo_claude_mcp_suite.group_access_mcp_api_key"/>
+
+    <menuitem id="menu_mcp_tool_log" name="Call Log" parent="menu_mcp_root"
+              action="action_mcp_tool_log" sequence="20"/>
+    <menuitem id="menu_mcp_allowed_model" name="Queryable Models" parent="menu_mcp_root"
+              action="action_mcp_allowed_model" sequence="30"/>
+    <menuitem id="menu_mcp_tool" name="Tools" parent="menu_mcp_root"
+              action="action_mcp_tool" sequence="40"/>
+
+</odoo>
