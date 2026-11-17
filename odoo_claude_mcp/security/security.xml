@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="module_category_odoo_claude_mcp" model="ir.module.category">
+        <field name="name">Claude MCP Access</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="group_access_claude_connector" model="res.groups">
+        <field name="name">Access Claude Connector</field>
+        <field name="category_id" ref="odoo_claude_mcp.module_category_odoo_claude_mcp"/>
+    </record>
+
+    <record id="module_category_mcp_api_key" model="ir.module.category">
+        <field name="name">MCP Api Key</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="group_access_mcp_api_key" model="res.groups">
+        <field name="name">Access MCP Api Key</field>
+        <field name="category_id" ref="odoo_claude_mcp.module_category_mcp_api_key"/>
+    </record>
+</odoo>
