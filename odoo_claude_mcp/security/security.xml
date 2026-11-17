@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="module_category_odoo_claude_mcp" model="ir.module.category">
+        <field name="name">Claude MCP Access</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="group_access_claude_connector" model="res.groups">
+        <field name="name">Access Claude Connector</field>
+        <field name="category_id" ref="odoo_claude_mcp.module_category_odoo_claude_mcp"/>
+    </record>
+
+    <record id="module_category_mcp_api_key" model="ir.module.category">
+        <field name="name">MCP Api Key</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="group_access_mcp_api_key" model="res.groups">
+        <field name="name">Access MCP Api Key</field>
+        <field name="category_id" ref="odoo_claude_mcp.module_category_mcp_api_key"/>
+    </record>
+
+
+    <record id="group_historical_mcp_import" model="res.groups">
+        <field name="name">Claude Historical Import Operator</field>
+        <field name="category_id" ref="odoo_claude_mcp.module_category_mcp_api_key"/>
+    </record>
+
+    <record id="group_historical_mcp_approve" model="res.groups">
+        <field name="name">Claude Historical Import Approver</field>
+        <field name="category_id" ref="odoo_claude_mcp.module_category_mcp_api_key"/>
+    </record>
+
+
+    <!-- Limit sessions to their owner or an approver, and to allowed companies. -->
+    <record id="rule_mcp_historical_session_scope" model="ir.rule">
+        <field name="name">Historical sessions: owner/approver and company</field>
+        <field name="model_id" ref="model_mcp_historical_import_session"/>
+        <field name="domain_force">[('company_id', 'in', company_ids), '|', ('owner_id', '=', user.id), ('owner_id', '=', False)]</field>
+        <field name="groups" eval="[(4, ref('odoo_claude_mcp.group_historical_mcp_import'))]"/>
+    </record>
+    <record id="rule_mcp_historical_session_approver_scope" model="ir.rule">
+        <field name="name">Historical sessions: approver companies</field>
+        <field name="model_id" ref="model_mcp_historical_import_session"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('odoo_claude_mcp.group_historical_mcp_approve'))]"/>
+    </record>
+
+    <record id="rule_mcp_historical_transfer_owner" model="ir.rule">
+        <field name="name">Historical transfers: owner and company</field>
+        <field name="model_id" ref="model_mcp_historical_upload_transfer"/>
+        <field name="domain_force">[('owner_id', '=', user.id), ('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('odoo_claude_mcp.group_historical_mcp_import'))]"/>
+    </record>
+    <record id="rule_mcp_historical_chunk_owner" model="ir.rule">
+        <field name="name">Historical chunks: transfer owner and company</field>
+        <field name="model_id" ref="model_mcp_historical_upload_chunk"/>
+        <field name="domain_force">[('transfer_id.owner_id', '=', user.id), ('transfer_id.company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('odoo_claude_mcp.group_historical_mcp_import'))]"/>
+    </record>
+</odoo>
